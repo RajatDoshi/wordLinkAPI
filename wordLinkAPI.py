@@ -10,26 +10,37 @@ api = FlaskAPI(__name__)
 """local function Section"""
 
 """
-Purporse: Compare Current Part Anotation With Other Parts
-Input: Other Part's in the Object that You Are Annotating (key for it is "otherParts")
+Purporse: Compare Current Part Anotation With Category of Annotation
+Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
 Output: Returns sorted list 
 """
-def returnSortedScores(word, data ):
-	scores = []
+def sortPartWithCategory(part, category):
+	scoreList = []
 	synset_with_score = {}
-	other_parts = data
-	for other in other_parts:
-		word_synset = wn.synsets(word)
-		current_synset = wn.synsets(other)
-		for index in range(0, len(current_synset)):
-			for indexWord in range (0, len(word_synset)):
-				val = current_synset[index].wup_similarity(word_synset[indexWord])
-				if val is not None:
-					scores.append(val)
-					synset_with_score[word_synset[indexWord].name()] = val
-	sorted_scores = sorted(scores, key=float)
-	sortedList = sorted(synset_with_score.items(), key=operator.itemgetter(1), reverse=True)
-	return sortedList
+	j = 0
+	info = []
+	bracket = {}
+	category_synset = wn.synsets(category)
+	part_synset = wn.synsets(part)
+	for index in range(0,len(part_synset)):
+		for indexWord in range(0,len(category_synset)):
+			score = part_synset[index].wup_similarity(category_synset[indexWord])
+			if score is not None:
+				scoreList.append(score)
+		sum = 0
+		for element in scoreList:
+			sum = sum + element
+		average = sum / len(scoreList)
+		scoreList.clear()
+		info.append({})
+		info[j].update({"Key": part_synset[index].name()})
+		info[j].update({"SynsetGloss": part_synset[index].definition()})
+		info[j].update({"SynsetID": part_synset[index].offset()})
+		info[j].update({"Score": average})
+		j = j + 1
+	newlist = sorted(info, key=lambda k: k['Score'], reverse=True) 
+	return newlist
+
 """
 Purpose: Function For Getting Info About a Word
 Input: The Common Name of a Part
@@ -45,6 +56,7 @@ def returnWordInfo(word):
 		info[j].update({"SynsetGloss": syn[j].definition()})
 		info[j].update({"SynsetID": syn[j].offset()})
 	return info
+
 """Return List of Definitions for a Word"""
 def returnDef(word):
 	syn = wordnet.synsets(word)
@@ -90,10 +102,8 @@ def test():
 @api.route('/wordlink/currentTest', methods=['GET', 'POST'])
 def testThings ():
 	data = request.get_json()
-	otherPartList = {"otherPart": data["otherPart"]}
-	word = 	data["currentPart"]
-	synset_with_score = returnSortedScores(word, otherPartList)
-	return jsonify(synset_with_score)
+	word = 	data["label"]
+	return jsonify(returnID(word))
 
 """ 
 Purpose: Adress For Getting Info About a Word
@@ -109,16 +119,15 @@ def returnInfo():
 
 """ 
 Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
-Input: Current Part and List of Other Parts in an Object (keys are "otherPart" and "label")
+Input: Current Part and List of Other Parts in an Object (keys are "partOf" and "label")
 Output: Returns Sorted Dictionary 
 """
-@api.route('/wordlink/compare_and_sort', methods=['GET', 'POST'])
+@api.route('/wordlink/sortByCategory', methods=['GET', 'POST'])
 def sort():
 	data = request.get_json()
-	otherPartList = data["otherPart"]
-	word = 	data["label"]
-	sorted_synsets = returnSortedScores(word, otherPartList)
-	return jsonify(sorted_synsets)
+	category = data["partOf"]
+	part = 	data["label"]
+	return jsonify(sortPartWithCategory(part, category))
 
 if __name__ == "__main__":
 	api.run(debug=True, port = 8080)
