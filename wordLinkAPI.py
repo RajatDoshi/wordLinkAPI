@@ -16,10 +16,8 @@ Output: Returns sorted list
 """
 def sortPartWithCategory(part, category):
 	scoreList = []
-	synset_with_score = {}
 	j = 0
 	info = []
-	bracket = {}
 	category_synset = wn.synsets(category)
 	part_synset = wn.synsets(part)
 	for index in range(0,len(part_synset)):
@@ -41,6 +39,36 @@ def sortPartWithCategory(part, category):
 	newlist = sorted(info, key=lambda k: k['Score'], reverse=True) 
 	return newlist
 
+"""
+Purporse: Compare Current Part Anotation With Category of Annotation
+Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
+Output: Returns sorted list 
+"""
+def sortLabel(part, otherParts):
+	scoreList = []
+	j = 0
+	info = []
+	for otherPart in otherParts:
+		part_synset = wn.synsets(part)
+		otherPartSynsets = wn.synsets(otherPart); 
+		for index in range(0,len(part_synset)):
+			for indexWord in range(0,len(otherPartSynsets)):
+				score = part_synset[index].wup_similarity(otherPartSynsets[indexWord])
+				if score is not None:
+					scoreList.append(score)
+			sum = 0
+			for num in scoreList:
+				sum = sum + num
+			average = sum / (len(scoreList))
+			scoreList.clear()
+			info.append({})
+			info[j].update({"Key": part_synset[index].name()})
+			info[j].update({"SynsetGloss": part_synset[index].definition()})
+			info[j].update({"SynsetID": part_synset[index].offset()})
+			info[j].update({"Score": average})
+			j = j + 1		
+	newlist = sorted(info, key=lambda k: k['Score'], reverse=True) 
+	return newlist
 """
 Purpose: Function For Getting Info About a Word
 Input: The Common Name of a Part
@@ -119,8 +147,20 @@ def returnInfo():
 
 """ 
 Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
+Input: Current Part and List of Other Parts in an Object (keys are "otherParts" and "label")
+Output: Returns List of Dictionaries
+"""
+@api.route('/wordlink/sortByOtherParts', methods=['GET', 'POST'])
+def sortPart():
+	data = request.get_json()
+	otherParts = data["otherParts"]
+	part = 	data["label"]
+	return jsonify(sortLabel(part, otherParts))
+
+""" 
+Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
 Input: Current Part and List of Other Parts in an Object (keys are "partOf" and "label")
-Output: Returns Sorted Dictionary 
+Output: Returns List of Dictionaries 
 """
 @api.route('/wordlink/sortByCategory', methods=['GET', 'POST'])
 def sort():
