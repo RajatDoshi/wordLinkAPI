@@ -8,12 +8,12 @@ from collections import OrderedDict
 api = FlaskAPI(__name__) 
 api.config['JSON_SORT_KEYS'] = False
 
-"""local function Section"""
+"""local function section"""
 
 """
-Purporse: Compare Current Part Anotation With Category of Annotation
-Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
-Output: Returns sorted list 
+Purporse: compare current part anotation with category of annotation
+Input: other part's in the object that you are annotating (key for it is "partOf")
+Output: returns sorted list 
 """
 def sortPartWithCategory(part, category, pos):
 	scoreList = []
@@ -41,9 +41,9 @@ def sortPartWithCategory(part, category, pos):
 	return newlist
 
 """
-Purporse: Compare Current Part Anotation With Category of Annotation
-Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
-Output: Returns sorted list 
+Purporse: compare current part anotation with category of annotation
+Input: other part's in the object that you are annotating (key for it is "partof")
+Output: returns sorted list 
 """
 def sortLabel(part, otherParts, pos):
 	counter = 2 #this is for keeping track of how many scores are being averaged 
@@ -81,9 +81,9 @@ def sortLabel(part, otherParts, pos):
 	return newlist
 
 """
-Purpose: Function For Getting Info About a Word
-Input: The Common Name of a Part
-Output: Returns Information of the part as a dictionary inside 1 list
+Purpose: function for getting info about a word
+Input: the common name of a part
+Output: returns information of the part as a dictionary inside 1 list
 """
 def returnWordInfo(word, pos):
 	syn = returnSynsetWithPOS(word, pos)
@@ -96,7 +96,7 @@ def returnWordInfo(word, pos):
 		info[j].update({"synsetID": syn[j].offset()})
 	return info
 
-"""Return List of Definitions for a Word"""
+"""Return list of definitions for a word"""
 def returnDef(word):
 	syn = wordnet.synsets(word)
 	length = len(syn)
@@ -105,7 +105,7 @@ def returnDef(word):
 		definitionList.append(i.definition())
 	return definitionList
 
-"""Return List of Synset Keys for a Word"""
+"""Return list of synset keys for a word"""
 def returnKey(word):
 	syn = wordnet.synsets(word)
 	length = len(syn)
@@ -114,7 +114,7 @@ def returnKey(word):
 		keyList.append(i.name())
 	return keyList
 
-"""Return List of POS for Every Synset of a Word"""
+"""Return list of POS for every synset of a word"""
 def returnPOS(word):
 	syn = wordnet.synsets(word)
 	length = len(syn)
@@ -123,7 +123,7 @@ def returnPOS(word):
 		posList.append(i.pos())
 	return posList
 
-"""Return List of Synset IDs for a Word"""
+"""Return list of synset IDs for a word"""
 def returnID(word):
 	syn = wordnet.synsets(word)
 	length = len(syn)
@@ -132,7 +132,7 @@ def returnID(word):
 		idList.append(i.offset())
 	return idList
 
-"""Return List of Synsets Based On Correct POS """
+"""Return list of synsets based on correct POS """
 def returnSynsetWithPOS(word, pos):
 	pos = pos.upper()
 	if pos == "NOUN":
@@ -164,7 +164,7 @@ def returnSynsetWithPOS(word, pos):
 def test():
 	return jsonify ({'message' : 'It works'})
 
-"""Adress For Testing Helper Functions"""
+"""Adress for testing helper functions"""
 @api.route('/wordlink/currentTest', methods=['GET', 'POST'])
 def testThings ():
 	data = request.get_json()
@@ -172,9 +172,9 @@ def testThings ():
 	return jsonify(returnID(word))
 
 """ 
-Purpose: Adress For Getting Info About a Word
-Input: The Common Name of a Part (make sure item is a list) (dictionary key is "label")
-Output: Returns Information of the part as a dictionary inside 1 list
+Purpose: address for getting info about a word
+Input: the common name of a part (make sure item is a list) (dictionary key is "label")
+Output: returns information of the part as a dictionary inside 1 list
 """
 @api.route('/wordlink/getInfo', methods=['GET', 'POST'])
 def returnInfo():
@@ -185,9 +185,9 @@ def returnInfo():
 	return jsonify(output)
 
 """ 
-Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
-Input: Current Part and List of Other Parts in an Object (keys are "otherParts" and "label")
-Output: Returns List of Dictionaries
+Purpose: address for identifying correct synset for a part annotation linkage based on similarity scores
+Input: current part and list of other parts in an object (keys are "otherparts" and "label")
+Output: returns list of dictionaries
 """
 @api.route('/wordlink/sortByOtherParts', methods=['GET', 'POST'])
 def sortPart():
@@ -198,9 +198,9 @@ def sortPart():
 	return jsonify(sortLabel(part, otherParts, pos))
 
 """ 
-Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
-Input: Current Part and List of Other Parts in an Object (keys are "partOf" and "label")
-Output: Returns List of Dictionaries 
+Purpose: address for identifying correct synset for a part annotation linkage based on similarity scores
+Input: current part and list of other parts in an object (keys are "partof" and "label")
+Output: returns list of dictionaries 
 """
 @api.route('/wordlink/sortByCategory', methods=['GET', 'POST'])
 def sort():
