@@ -6,6 +6,7 @@ import json, numpy, operator
 from collections import OrderedDict
 
 api = FlaskAPI(__name__) 
+api.config['JSON_SORT_KEYS'] = False
 
 """local function Section"""
 
@@ -14,12 +15,12 @@ Purporse: Compare Current Part Anotation With Category of Annotation
 Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
 Output: Returns sorted list 
 """
-def sortPartWithCategory(part, category):
+def sortPartWithCategory(part, category, pos):
 	scoreList = []
 	j = 0
 	info = []
-	category_synset = wn.synsets(category)
-	part_synset = wn.synsets(part)
+	category_synset = returnSynsetWithPOS(category, pos)
+	part_synset = returnSynsetWithPOS(part, pos)
 	for index in range(0,len(part_synset)):
 		for indexWord in range(0,len(category_synset)):
 			score = part_synset[index].wup_similarity(category_synset[indexWord])
@@ -31,12 +32,12 @@ def sortPartWithCategory(part, category):
 		average = sum / len(scoreList)
 		scoreList.clear()
 		info.append({})
-		info[j].update({"Key": part_synset[index].name()})
-		info[j].update({"SynsetGloss": part_synset[index].definition()})
-		info[j].update({"SynsetID": part_synset[index].offset()})
-		info[j].update({"Score": average})
+		info[j].update({"key": part_synset[index].name()})
+		info[j].update({"gloss": part_synset[index].definition()})
+		info[j].update({"synsetID": part_synset[index].offset()})
+		info[j].update({"score": average})
 		j = j + 1
-	newlist = sorted(info, key=lambda k: k['Score'], reverse=True) 
+	newlist = sorted(info, key=lambda k: k['score'], reverse=True) 
 	return newlist
 
 """
@@ -44,13 +45,13 @@ Purporse: Compare Current Part Anotation With Category of Annotation
 Input: Other Part's in the Object that You Are Annotating (key for it is "partOf")
 Output: Returns sorted list 
 """
-def sortLabel(part, otherParts):
+def sortLabel(part, otherParts, pos):
 	scoreList = []
 	j = 0
 	info = []
 	for otherPart in otherParts:
-		part_synset = wn.synsets(part)
-		otherPartSynsets = wn.synsets(otherPart); 
+		part_synset = returnSynsetWithPOS(part, pos)
+		otherPartSynsets = returnSynsetWithPOS(otherPart, pos)
 		for index in range(0,len(part_synset)):
 			for indexWord in range(0,len(otherPartSynsets)):
 				score = part_synset[index].wup_similarity(otherPartSynsets[indexWord])
@@ -62,27 +63,27 @@ def sortLabel(part, otherParts):
 			average = sum / (len(scoreList))
 			scoreList.clear()
 			info.append({})
-			info[j].update({"Key": part_synset[index].name()})
-			info[j].update({"SynsetGloss": part_synset[index].definition()})
-			info[j].update({"SynsetID": part_synset[index].offset()})
-			info[j].update({"Score": average})
+			info[j].update({"key": part_synset[index].name()})
+			info[j].update({"gloss": part_synset[index].definition()})
+			info[j].update({"synsetID": part_synset[index].offset()})
+			info[j].update({"score": average})
 			j = j + 1		
-	newlist = sorted(info, key=lambda k: k['Score'], reverse=True) 
+	newlist = sorted(info, key=lambda k: k['score'], reverse=True) 
 	return newlist
 """
 Purpose: Function For Getting Info About a Word
 Input: The Common Name of a Part
 Output: Returns Information of the part as a dictionary inside 1 list
 """
-def returnWordInfo(word):
-	syn = wordnet.synsets(word)
+def returnWordInfo(word, pos):
+	syn = returnSynsetWithPOS(word, pos)
 	info = []
 	bracket = {}
 	for j in range(0,len(syn)):
 		info.append({})
-		info[j].update({"Key": syn[j].name()})
-		info[j].update({"SynsetGloss": syn[j].definition()})
-		info[j].update({"SynsetID": syn[j].offset()})
+		info[j].update({"key": syn[j].name()})
+		info[j].update({"gloss": syn[j].definition()})
+		info[j].update({"synsetID": syn[j].offset()})
 	return info
 
 """Return List of Definitions for a Word"""
@@ -121,6 +122,33 @@ def returnID(word):
 		idList.append(i.offset())
 	return idList
 
+"""Return List of Synsets Based On Correct POS """
+def returnSynsetWithPOS(word, pos):
+	pos = pos.upper()
+	if pos == "NOUN":
+		try:
+			syn = wordnet.synsets(word, pos = wn.NOUN)
+		except Exception:
+			syn = wordnet.synsets(word)	
+	elif pos == "ADJECTIVE":
+		try:
+			syn = wordnet.synsets(word, pos = wn.ADJECTIVE)
+		except Exception:
+			syn = wordnet.synsets(word)	
+	elif pos == "VERB":
+		try:
+			syn = wordnet.synsets(word, pos = wn.VERB)
+		except Exception:
+			syn = wordnet.synsets(word)	
+	elif pos == "ADVERB":
+		try:
+			syn = wordnet.synsets(word, pos = wn.ADVERB)
+		except Exception:
+			syn = wordnet.synsets(word)	
+	else:
+		syn = wordnet.synsets(word)
+	return syn
+
 """main screen"""
 @api.route("/", methods=['GET', 'POST'])
 def test():
@@ -142,7 +170,8 @@ Output: Returns Information of the part as a dictionary inside 1 list
 def returnInfo():
 	data = request.get_json()
 	word = data["label"]
-	output = returnWordInfo(word)
+	pos = data["pos"]
+	output = returnWordInfo(word, pos)
 	return jsonify(output)
 
 """ 
@@ -155,7 +184,8 @@ def sortPart():
 	data = request.get_json()
 	otherParts = data["otherParts"]
 	part = 	data["label"]
-	return jsonify(sortLabel(part, otherParts))
+	pos = data["pos"]
+	return jsonify(sortLabel(part, otherParts, pos))
 
 """ 
 Purpose: Adress For Identifying Correct Synset for a Part Annotation Linkage Based on Similarity Scores
@@ -167,7 +197,8 @@ def sort():
 	data = request.get_json()
 	category = data["partOf"]
 	part = 	data["label"]
-	return jsonify(sortPartWithCategory(part, category))
+	pos = data["pos"]
+	return jsonify(sortPartWithCategory(part, category, pos))
 
 if __name__ == "__main__":
 	api.run(debug=True, port = 8080)
