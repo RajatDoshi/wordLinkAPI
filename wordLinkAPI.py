@@ -46,9 +46,10 @@ Input: Other Part's in the Object that You Are Annotating (key for it is "partOf
 Output: Returns sorted list 
 """
 def sortLabel(part, otherParts, pos):
+	counter = 2 #this is for keeping track of how many scores are being averaged 
 	scoreList = []
-	j = 0
-	info = []
+	output = []
+	info = {}
 	for otherPart in otherParts:
 		part_synset = returnSynsetWithPOS(part, pos)
 		otherPartSynsets = returnSynsetWithPOS(otherPart, pos)
@@ -62,14 +63,23 @@ def sortLabel(part, otherParts, pos):
 				sum = sum + num
 			average = sum / (len(scoreList))
 			scoreList.clear()
-			info.append({})
-			info[j].update({"key": part_synset[index].name()})
-			info[j].update({"gloss": part_synset[index].definition()})
-			info[j].update({"synsetID": part_synset[index].offset()})
-			info[j].update({"score": average})
-			j = j + 1		
-	newlist = sorted(info, key=lambda k: k['score'], reverse=True) 
+			try:
+				new_val = (average + ((counter - 1) * info[part_synset[index]]["score"]))/ counter
+				info[part_synset[index]].update({"gloss": part_synset[index].definition(), "score": new_val})
+				counter = counter + 1
+			except Exception:
+				info[part_synset[index]] = {"gloss": part_synset[index].definition(), "score": average} 
+	j = 0
+	for keyVal in info.keys():
+		output.append({})
+		output[j].update({"key": keyVal.name()})
+		output[j].update({"gloss": keyVal.definition()})
+		output[j].update({"synsetID": keyVal.offset()})
+		output[j].update({"score": info[keyVal]["score"]})
+		j = j + 1
+	newlist = sorted(output, key=lambda k: k['score'], reverse=True) 
 	return newlist
+
 """
 Purpose: Function For Getting Info About a Word
 Input: The Common Name of a Part
